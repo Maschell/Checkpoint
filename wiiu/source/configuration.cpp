@@ -105,7 +105,7 @@ Configuration::~Configuration(void)
 
 void Configuration::store(void)
 {
-    FILE* in = fopen("romfs:/config.json", "rt");
+    FILE* in = fopen("fs:/vol/content/config.json", "rt");
     if (in != NULL) {
         nlohmann::json src = nlohmann::json::parse(in, nullptr, false);
         fclose(in);

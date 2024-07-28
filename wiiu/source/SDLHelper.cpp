@@ -46,8 +46,8 @@ bool SDLH_Init(void)
         Logger::getInstance().log(Logger::ERROR, "IMG_Init: %s.", IMG_GetError());
         return false;
     }
-    SDLH_LoadImage(&s_star, "romfs:/star.png");
-    SDLH_LoadImage(&s_checkbox, "romfs:/checkbox.png");
+    SDLH_LoadImage(&s_star, "fs:/vol/content/star.png");
+    SDLH_LoadImage(&s_checkbox, "fs:/vol/content/checkbox.png");
     SDL_SetTextureColorMod(s_checkbox, theme().c1.r, theme().c1.g, theme().c1.b);
 
     // Load system font

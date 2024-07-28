@@ -272,6 +272,7 @@ std::tuple<bool, int32_t, std::string> io::restore(size_t index, AccountUid uid,
         return std::make_tuple(false, res, "Failed to restore save.");
     }
 
+    /*
     res = flushVolume("/vol/storage_mlc01");
     if (res != 0) {
         Logger::getInstance().log(Logger::WARN, "Failed to flush mlc");
@@ -280,7 +281,7 @@ std::tuple<bool, int32_t, std::string> io::restore(size_t index, AccountUid uid,
     res = flushVolume("/vol/storage_usb01");
     if (res != 0) {
         Logger::getInstance().log(Logger::WARN, "Failed to flush usb");
-    } 
+    } */
 
     blinkLed(4);
     ret = std::make_tuple(true, 0, nameFromCell + "\nhas been restored successfully.");

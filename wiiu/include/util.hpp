@@ -34,8 +34,6 @@
 #include <sys/stat.h>
 #include <tuple>
 
-#include <romfs-wiiu.h>
-#include <whb/sdcard.h>
 #include <coreinit/mcp.h>
 #include <coreinit/ios.h>
 #include <coreinit/thread.h>
@@ -44,16 +42,9 @@
 
 #include <nn/act.h>
 
-#include <iosuhax.h>
-#include <iosuhax_devoptab.h>
-
-void servicesExit(void);
-int32_t servicesInit(void);
+void servicesExit();
+int32_t servicesInit();
 void blinkLed(uint8_t times);
-
-bool try_init_iosuhax(void);
-void try_shutdown_iosuhax(void);
-int flushVolume(const char* volumePath);
 
 nn::act::SlotNo accountIdToSlotNo(uint32_t accountId);
 

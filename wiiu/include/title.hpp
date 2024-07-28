@@ -38,7 +38,6 @@
 #include <utility>
 #include <vector>
 #include <malloc.h>
-#include <tinyxml2.h>
 
 #include <coreinit/mcp.h>
 #include <nn/act.h>
@@ -68,10 +67,7 @@ public:
     void lastPlayedTimestamp(uint32_t lastPlayedTimestamp);
     std::string fullPath(size_t index);
     void refreshDirectories(void);
-    uint64_t saveId();
-    void saveId(uint64_t id);
     std::vector<std::string> saves(void);
-    uint8_t saveDataType(void);
     AccountUid userId(void);
     std::string userName(void);
 

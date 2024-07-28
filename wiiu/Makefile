@@ -8,6 +8,15 @@ endif
 
 TOPDIR ?= $(CURDIR)
 
+#-------------------------------------------------------------------------------
+# APP_NAME sets the long name of the application
+# APP_SHORTNAME sets the short name of the application
+# APP_AUTHOR sets the author of the application
+#-------------------------------------------------------------------------------
+APP_NAME	:= Checkpoint
+APP_SHORTNAME	:= Checkpoint
+APP_AUTHOR	:=  BernardoGiordano, GaryOderNichts, Maschell
+
 include $(DEVKITPRO)/wut/share/wut_rules
 
 #-------------------------------------------------------------------------------
@@ -16,20 +25,20 @@ include $(DEVKITPRO)/wut/share/wut_rules
 # SOURCES is a list of directories containing source code
 # DATA is a list of directories containing data files
 # INCLUDES is a list of directories containing header files
+# CONTENT is the path to the bundled folder that will be mounted as /vol/content/
+# ICON is the game icon, leave blank to use default rule
+# TV_SPLASH is the image displayed during bootup on the TV, leave blank to use default rule
+# DRC_SPLASH is the image displayed during bootup on the DRC, leave blank to use default rule
 #-------------------------------------------------------------------------------
-
 TARGET		:=	Checkpoint
-OUTDIR		:=  out
 BUILD		:=	build
 SOURCES		:=	source \
 				../common
-
-DATA		:=	data
 INCLUDES	:=	include \
 				../common \
 				../3rd-party/json
-
-ROMFS		:=	romfs
+CONTENT		:=  data
+ICON		:=  meta/icon.png
 
 #-------------------------------------------------------------------------------
 # options for code generation
@@ -42,18 +51,28 @@ CFLAGS	:=	-g -Wall -O2 -ffunction-sections \
 
 CFLAGS	+=	$(INCLUDE) -D__WIIU__ -D__WUT__
 
-CXXFLAGS	:= $(CFLAGS) -std=gnu++17
+CXXFLAGS	:= $(CFLAGS) -std=c++20
 
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-g $(ARCH) $(RPXSPECS) -Wl,-Map,$(notdir $*.map)
 
-LIBS	:= -lSDL2_ttf -lSDL2_image -lSDL2 -ltinyxml2 -lharfbuzz -lfreetype -ljpeg -lpng -lbz2 -lz -liosuhax -lwut
+ifeq ($(DEBUG),1)
+CXXFLAGS += -DDEBUG -g
+CFLAGS += -DDEBUG -g
+endif
+
+ifeq ($(DEBUG),VERBOSE)
+CXXFLAGS += -DDEBUG -DVERBOSE_DEBUG -g
+CFLAGS += -DDEBUG -DVERBOSE_DEBUG -g
+endif
+
+LIBS	:= -lSDL2_ttf -lSDL2_image -lSDL2 -lharfbuzz -lfreetype -ljpeg -lpng -lbz2 -lz  -lwut
 
 #-------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level
 # containing include and lib
 #-------------------------------------------------------------------------------
-LIBDIRS	:= $(WUT_ROOT) $(WUT_ROOT)/usr $(DEVKITPRO)/portlibs/wiiu $(DEVKITPRO)/portlibs/ppc
+LIBDIRS	:= $(PORTLIBS) $(WUT_ROOT) $(WUT_ROOT)/usr $(WUMS_ROOT)
 
 #-------------------------------------------------------------------------------
 # no real need to edit anything past this point unless you need to add additional
@@ -66,7 +85,7 @@ export OUTPUT	:=	$(CURDIR)/$(OUTDIR)/$(TARGET)
 export TOPDIR	:=	$(CURDIR)
 
 export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
-					$(foreach dir,$(DATA),$(CURDIR)/$(dir))
+			$(foreach dir,$(DATA),$(CURDIR)/$(dir))
 
 export DEPSDIR	:=	$(CURDIR)/$(BUILD)
 
@@ -100,13 +119,42 @@ export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 
 export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 
+
+ifneq (,$(strip $(CONTENT)))
+	export APP_CONTENT := $(TOPDIR)/$(CONTENT)
+endif
+
+ifneq (,$(strip $(ICON)))
+	export APP_ICON := $(TOPDIR)/$(ICON)
+else ifneq (,$(wildcard $(TOPDIR)/$(TARGET).png))
+	export APP_ICON := $(TOPDIR)/$(TARGET).png
+else ifneq (,$(wildcard $(TOPDIR)/icon.png))
+	export APP_ICON := $(TOPDIR)/icon.png
+endif
+
+ifneq (,$(strip $(TV_SPLASH)))
+	export APP_TV_SPLASH := $(TOPDIR)/$(TV_SPLASH)
+else ifneq (,$(wildcard $(TOPDIR)/tv-splash.png))
+	export APP_TV_SPLASH := $(TOPDIR)/tv-splash.png
+else ifneq (,$(wildcard $(TOPDIR)/splash.png))
+	export APP_TV_SPLASH := $(TOPDIR)/splash.png
+endif
+
+ifneq (,$(strip $(DRC_SPLASH)))
+	export APP_DRC_SPLASH := $(TOPDIR)/$(DRC_SPLASH)
+else ifneq (,$(wildcard $(TOPDIR)/drc-splash.png))
+	export APP_DRC_SPLASH := $(TOPDIR)/drc-splash.png
+else ifneq (,$(wildcard $(TOPDIR)/splash.png))
+	export APP_DRC_SPLASH := $(TOPDIR)/splash.png
+endif
+
 .PHONY: $(BUILD) clean all
 
 #-------------------------------------------------------------------------------
 all: $(BUILD)
 
 $(BUILD):
-	@[ -d $@ ] || mkdir -p $@ $(BUILD) $(OUTDIR)
+	@$(shell [ ! -d $(BUILD) ] && mkdir -p $(BUILD) $(OUTPUT))
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
 #-------------------------------------------------------------------------------
@@ -118,33 +166,18 @@ clean:
 else
 .PHONY:	all
 
-# romfs ------------------------------------------------------------------------
-include $(DEVKITPRO)/portlibs/wiiu/share/romfs-wiiu.mk
-CFLAGS		+=	$(ROMFS_CFLAGS)
-CXXFLAGS	+=	$(ROMFS_CFLAGS)
-LIBS		+=	$(ROMFS_LIBS)
-OFILES 		+=  $(ROMFS_TARGET)
-#-------------------------------------------------------------------------------
-
 DEPENDS	:=	$(OFILES:.o=.d)
 
 #-------------------------------------------------------------------------------
 # main targets
 #-------------------------------------------------------------------------------
-all	:	$(OUTPUT).rpx
+all	:	$(OUTPUT).wuhb
 
+$(OUTPUT).wuhb	:	$(OUTPUT).rpx
 $(OUTPUT).rpx	:	$(OUTPUT).elf
 $(OUTPUT).elf	:	$(OFILES)
 
 $(OFILES_SRC)	: $(HFILES_BIN)
-
-#-------------------------------------------------------------------------------
-# you need a rule like this for each extension you use as binary data
-#-------------------------------------------------------------------------------
-%.bin.o	%_bin.h :	%.bin
-#-------------------------------------------------------------------------------
-	@echo $(notdir $<)
-	@$(bin2o)
 
 -include $(DEPENDS)
 
