@@ -31,6 +31,7 @@ include $(DEVKITPRO)/wut/share/wut_rules
 # DRC_SPLASH is the image displayed during bootup on the DRC, leave blank to use default rule
 #-------------------------------------------------------------------------------
 TARGET		:=	Checkpoint
+OUTDIR		:=  out
 BUILD		:=	build
 SOURCES		:=	source \
 				../common
@@ -38,7 +39,6 @@ INCLUDES	:=	include \
 				../common \
 				../3rd-party/json
 CONTENT		:=  data
-ICON		:=  meta/icon.png
 
 #-------------------------------------------------------------------------------
 # options for code generation
@@ -72,7 +72,7 @@ LIBS	:= -lSDL2_ttf -lSDL2_image -lSDL2 -lharfbuzz -lfreetype -ljpeg -lpng -lbz2 
 # list of directories containing libraries, this must be the top level
 # containing include and lib
 #-------------------------------------------------------------------------------
-LIBDIRS	:= $(PORTLIBS) $(WUT_ROOT) $(WUT_ROOT)/usr $(WUMS_ROOT)
+LIBDIRS	:= $(PORTLIBS) $(WUT_ROOT) $(WUT_ROOT)/usr
 
 #-------------------------------------------------------------------------------
 # no real need to edit anything past this point unless you need to add additional
@@ -154,7 +154,7 @@ endif
 all: $(BUILD)
 
 $(BUILD):
-	@$(shell [ ! -d $(BUILD) ] && mkdir -p $(BUILD) $(OUTPUT))
+	@$(shell [ ! -d $(BUILD) ] && mkdir -p $(BUILD) $(OUTDIR))
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
 #-------------------------------------------------------------------------------
