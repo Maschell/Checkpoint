@@ -28,7 +28,7 @@ bool SDLH_Init(void)
         Logger::getInstance().log(Logger::ERROR, "SDL_Init: %s.", SDL_GetError());
         return false;
     }
-    s_window = SDL_CreateWindow("Checkpoint", 0, 0, 1280, 720, SDL_WINDOW_FULLSCREEN);
+    s_window = SDL_CreateWindow("Checkpoint", 0, 0, 1280, 720, 0);
     if (!s_window) {
         Logger::getInstance().log(Logger::ERROR, "SDL_CreateWindow: %s.", SDL_GetError());
         return false;
