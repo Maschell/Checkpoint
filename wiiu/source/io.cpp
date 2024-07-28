@@ -115,7 +115,7 @@ int32_t io::copyDirectory(const std::string& srcPath, const std::string& dstPath
 
 int32_t io::createDirectory(const std::string& path, int mode)
 {
-    mkdir(path.c_str(), mode ? mode : 777);
+    mkdir(path.c_str(), mode ? mode : 0777);
     if (mode) chmod(path.c_str(), mode);
     return 0;
 }
