@@ -25,6 +25,7 @@
  */
 
 #include "title.hpp"
+#include <set>
 #include <span>
 #include <coreinit/debug.h>
 
@@ -203,8 +204,33 @@ void Title::refreshDirectories(void) {
    }
 }
 
+
+enum ACPSaveDevice {
+    ACP_SAVE_DEVICE_MLC = 3,
+    ACP_SAVE_DEVICE_USB = 4,
+};
+
 extern "C" ACPResult
-ACPGetSaveDataTitleIdList(int storage_type, uint64_t *titlesOut, uint32_t maxCount, uint32_t *titlesNumOut);
+ACPGetSaveDataTitleIdList(ACPSaveDevice storage_type, uint64_t *titlesOut, uint32_t maxCount, uint32_t *titlesNumOut);
+extern "C" ACPResult
+ACPGetTitleSaveMetaXml(uint64_t titleId, ACPMetaXml *metaXml, ACPDeviceType deviceType);
+
+typedef struct WUT_PACKED ACPSaveDirInfo {
+    WUT_UNKNOWN_BYTES(0x8);
+    nn::act::PersistentId persistentId;
+    WUT_UNKNOWN_BYTES(0x14);
+    char path[0x40];
+    WUT_PADDING_BYTES(0x80 - 0x60);
+} ACPSaveDirInfo;
+WUT_CHECK_SIZE(ACPSaveDirInfo, 0x80);
+WUT_CHECK_OFFSET(ACPSaveDirInfo, 0x20, path);
+WUT_CHECK_OFFSET(ACPSaveDirInfo, 0x08, persistentId);
+
+extern "C" ACPResult
+ACPGetTitleSaveDirEx(uint64_t titleId, ACPSaveDevice storage_type, uint32_t u1 /* seems to be always 0? */,
+                     ACPSaveDirInfo *saveDirInfo, uint32_t maxCount,
+                     uint32_t *countOut
+);
 
 void loadTitles() {
    sTitles.clear();
@@ -221,20 +247,50 @@ void loadTitles() {
       return;
    }
 
-   auto *titleIds = (uint64_t *) memalign(0x40, sizeof(uint64_t) * 1000);
-
-   uint32_t outCount = 0;
-   if (ACPGetSaveDataTitleIdList(3, titleIds, 1000, &outCount) != ACP_RESULT_SUCCESS) {
-      MCP_Close(mcp);
-      return;
+   constexpr int MAX_SAVE_COUNT = 1000;
+   auto *titleIdsBuffer = (uint64_t *) memalign(0x40, sizeof(uint64_t) * MAX_SAVE_COUNT);
+   ACPSaveDevice saveDevices[] = {ACP_SAVE_DEVICE_MLC, ACP_SAVE_DEVICE_USB};
+   std::set<uint64_t> titleIdList;
+   for (const auto &saveDevice: saveDevices) {
+      uint32_t curOutCount = 0;
+      if (ACPGetSaveDataTitleIdList(saveDevice, titleIdsBuffer, MAX_SAVE_COUNT, &curOutCount) == ACP_RESULT_SUCCESS) {
+         for (int i = 0; i < curOutCount; i++) {
+            titleIdList.insert(titleIdsBuffer[i]);
+         }
+         OSReport("%d returned %d titles\n", saveDevice, curOutCount);
+      }
    }
+   OSReport("Found %d saves in total: %d\n", titleIdList.size());
+   auto *xml = (ACPMetaXml *) memalign(0x40, sizeof(ACPMetaXml));
 
-   for (const auto cur : std::span<uint64_t>(titleIds, titleIds + outCount)) {
-      OSReport("%016llX\n", cur);
+
+   constexpr int SAVE_DIR_BUFFER_COUNT = 0x40;
+   auto *saveDirBuffer = (ACPSaveDirInfo *) memalign(0x40, sizeof(ACPSaveDirInfo) * SAVE_DIR_BUFFER_COUNT);
+
+   for (const auto cur: titleIdList) {
+      if (ACPGetTitleSaveMetaXml(cur, xml, 1) ==
+          ACP_RESULT_SUCCESS) { // DeviveType "1" seems to work for both MLC and USB titles
+         OSReport("%016llX %s\n", cur, xml->shortname_en);
+      } else {
+         OSReport("failed\n");
+      }
+
+      for (const auto &saveDevice: saveDevices) {
+         uint32_t outCount = 0;
+         if (ACPGetTitleSaveDirEx(cur, saveDevice, 0, saveDirBuffer, SAVE_DIR_BUFFER_COUNT, &outCount) ==
+             ACP_RESULT_SUCCESS) {
+            for (uint32_t i = 0; i < outCount; i++) {
+               OSReport("User: %08X path: %s\n", saveDirBuffer[i].persistentId, saveDirBuffer[i].path);
+            }
+         }
+      }
+
+      OSReport("====\n");
    }
-
 
    sortTitles();
+   free(titleIdsBuffer);
+   free(xml);
 }
 
 void sortTitles(void) {
