@@ -5,7 +5,7 @@ static SDL_Renderer* s_renderer;
 static SDL_Texture* s_star;
 static SDL_Texture* s_checkbox;
 
-static void* fontData = nullptr;
+static void* fontData    = nullptr;
 static uint32_t fontSize = 0;
 
 static std::unordered_map<int, FC_Font*> s_fonts;
@@ -195,7 +195,7 @@ void drawPulsingOutline(uint32_t x, uint32_t y, uint16_t w, uint16_t h, uint8_t 
 {
     float highlight_multiplier = fmax(0.0, fabs(fmod(g_currentTime, 1.0) - 0.5) / 0.5);
     color                      = FC_MakeColor(color.r + (255 - color.r) * highlight_multiplier, color.g + (255 - color.g) * highlight_multiplier,
-        color.b + (255 - color.b) * highlight_multiplier, 255);
+                             color.b + (255 - color.b) * highlight_multiplier, 255);
     drawOutline(x, y, w, h, size, color);
 }
 

@@ -66,7 +66,7 @@ CXXFLAGS += -DDEBUG -DVERBOSE_DEBUG -g
 CFLAGS += -DDEBUG -DVERBOSE_DEBUG -g
 endif
 
-LIBS	:= -lSDL2_ttf -lSDL2_image -lSDL2 -lharfbuzz -lfreetype -ljpeg -lpng -lbz2 -lz  -lwut
+LIBS	:= -lSDL2_ttf -lSDL2_image -lSDL2 -lharfbuzz -lfreetype -ljpeg -lpng -lbz2 -lz  -lwut -lmocha
 
 #-------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level

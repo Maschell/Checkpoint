@@ -27,11 +27,11 @@
 #ifndef MAINSCREEN_HPP
 #define MAINSCREEN_HPP
 
+#include "AccountSelectOverlay.hpp"
 #include "ErrorOverlay.hpp"
 #include "InfoOverlay.hpp"
 #include "Screen.hpp"
 #include "YesNoOverlay.hpp"
-#include "AccountSelectOverlay.hpp"
 #include "clickable.hpp"
 #include "hid.hpp"
 #include "io.hpp"

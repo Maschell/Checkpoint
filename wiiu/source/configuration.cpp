@@ -98,10 +98,7 @@ Configuration::Configuration(void)
     parse();
 }
 
-Configuration::~Configuration(void)
-{
-
-}
+Configuration::~Configuration(void) {}
 
 void Configuration::store(void)
 {

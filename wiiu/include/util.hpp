@@ -29,13 +29,13 @@
 
 #include "account.hpp"
 #include "common.hpp"
-#include "io.hpp"
 #include "input.hpp"
+#include "io.hpp"
 #include <sys/stat.h>
 #include <tuple>
 
-#include <coreinit/mcp.h>
 #include <coreinit/ios.h>
+#include <coreinit/mcp.h>
 #include <coreinit/thread.h>
 #include <coreinit/time.h>
 #include <nn/acp.h>
@@ -49,7 +49,7 @@ void blinkLed(uint8_t times);
 nn::act::SlotNo accountIdToSlotNo(uint32_t accountId);
 
 namespace StringUtils {
-    std::string removeAccents(std::string str);
+    std::string removeAccents(const std::string& str);
     std::string removeNotAscii(std::string str);
     std::u16string UTF8toUTF16(const char* src);
 }

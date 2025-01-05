@@ -42,10 +42,10 @@ public:
     Directory(const std::string& root);
     ~Directory(void){};
 
-    int32_t error(void);
+    int32_t error(void) const;
     std::string entry(size_t index);
     bool folder(size_t index);
-    bool good(void);
+    bool good(void) const;
     size_t size(void);
 
 private:

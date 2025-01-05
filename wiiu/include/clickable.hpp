@@ -29,8 +29,8 @@
 
 #include "SDLHelper.hpp"
 #include "iclickable.hpp"
-#include "main.hpp"
 #include "input.hpp"
+#include "main.hpp"
 #include <string>
 
 class Clickable : public IClickable<SDL_Color> {

@@ -28,8 +28,8 @@
 #define CONFIGHANDLER_HPP
 
 #include "io.hpp"
-#include "util.hpp"
 #include "json.hpp"
+#include "util.hpp"
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -61,7 +61,7 @@ private:
 
     void store(void);
 
-    Configuration(Configuration const&) = delete;
+    Configuration(Configuration const&)  = delete;
     void operator=(Configuration const&) = delete;
 
     nlohmann::json mJson;

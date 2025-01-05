@@ -1,33 +1,34 @@
 #include "AccountSelectOverlay.hpp"
 
-AccountSelectOverlay::AccountSelectOverlay(Screen& screen, const std::function<void(AccountUid)>& callbackSelectedUser, const std::function<void()>& callbackCancel)
-: Overlay(screen), hid(12, 12)
+AccountSelectOverlay::AccountSelectOverlay(
+    Screen& screen, const std::function<void(nn::act::PersistentId)>& callbackSelectedUser, const std::function<void()>& callbackCancel)
+    : Overlay(screen), hid(12, 12)
 {
     select = callbackSelectedUser;
     cancel = callbackCancel;
 
     for (uint8_t i = 1; i <= 12; i++) {
-        User user = Account::getUserFromSlot(i);
-        if (user.id != 0) {
-            if (user.id == g_currentUId) {
+        auto userOpt = Account::getUserFromSlot(i);
+        if (userOpt) {
+            if (userOpt->id == g_currentUId) {
                 hid.index(i - 1);
             }
 
-            users.push_back(user);
+            users.push_back(std::move(*userOpt));
         }
     }
 }
 
-void AccountSelectOverlay::draw(void) const
+void AccountSelectOverlay::draw() const
 {
     SDLH_DrawRect(0, 0, 1280, 720, COLOR_OVERLAY);
 
     int w = 128, h = 128;
     for (uint32_t i = 0; i < users.size(); i++) {
-        int center = 1280 / 2;
+        int center     = 1280 / 2;
         int totalWidth = users.size() * (w + 10);
-        int x = center - (totalWidth / 2) + (i * (w + 10));
-        int y = 360;
+        int x          = center - (totalWidth / 2) + (i * (w + 10));
+        int y          = 360;
 
         u32 username_w, username_h;
         std::string username = trimToFit(users[i].name, w - g_username_dotsize, 18);

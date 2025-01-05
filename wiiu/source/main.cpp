@@ -27,37 +27,91 @@
 #include "main.hpp"
 #include "MainScreen.hpp"
 #include "input.hpp"
+#include <coreinit/debug.h>
+#include <coreinit/filesystem_fsa.h>
+#include <mocha/mocha.h>
 #include <whb/proc.h>
 
+typedef struct FSADeviceData {
+    devoptab_t device;
+    bool setup;
+    bool mounted;
+    bool isSDCard;
+    char name[32];
+    char mountPath[0x80];
+    char cwd[FS_MAX_PATH + 1];
+    FSAClientHandle clientHandle;
+    uint64_t deviceSizeInSectors;
+    uint32_t deviceSectorSize;
+} __wut_fsa_device_t;
+
+bool slibMochaMount = false;
+
+void initMochaLib()
+{
+    slibMochaMount       = false;
+    MochaUtilsStatus res = Mocha_InitLibrary();
+    if (res != MOCHA_RESULT_SUCCESS) {
+        OSReport("Mocha_InitLibrary failed: %s\n", Mocha_GetStatusStr(res));
+        OSFatal("Failed to init libmocha. Please update MochaPayload.");
+    }
+    else {
+        slibMochaMount = true;
+    }
+}
+
+void deInitMochaLib()
+{
+    if (slibMochaMount) {
+        Mocha_DeInitLibrary();
+        slibMochaMount = false;
+    }
+}
+
+extern "C" __wut_fsa_device_t __wut_fsa_device_data;
 int main(void)
 {
     WHBProcInit();
 
-    if (servicesInit() != 0) {
+    try {
+        if (servicesInit() != 0) {
+            servicesExit();
+            WHBProcShutdown();
+            return 0;
+        }
+
+        initMochaLib();
+        // TODO:
+        if (Mocha_UnlockFSClientEx(__wut_fsa_device_data.clientHandle) != MOCHA_RESULT_SUCCESS) {
+            OSFatal("Failed to unlock FSAClientHandle");
+        }
+
+        deInitMochaLib();
+        g_screen = std::make_unique<MainScreen>();
+
+        loadTitles();
+
+        // set g_currentUId to the current user
+        g_currentUId = nn::act::GetPersistentId();
+
+        while (WHBProcIsRunning()) {
+            g_screen->doDraw();
+
+            Input::update();
+            touchPosition touch = Input::getTouch();
+            g_screen->doUpdate(&touch);
+
+            SDLH_Render();
+        }
         servicesExit();
-        WHBProcShutdown();
-        return 0;
     }
-
-    g_screen = std::make_unique<MainScreen>();
-
-    loadTitles();
-
-    // set g_currentUId to the current user
-    g_currentUId = nn::act::GetPersistentId();
-
-    while (WHBProcIsRunning()) {
-        g_screen->doDraw();
-
-        Input::update();
-        touchPosition touch = Input::getTouch();
-        g_screen->doUpdate(&touch);
-        
-        SDLH_Render();
+    catch (std::exception& e) {
+        OSReport("%s\n", e.what());
+        while (WHBProcIsRunning()) {}
+        servicesExit();
     }
-
-    servicesExit();
 
     WHBProcShutdown();
+
     return 0;
 }

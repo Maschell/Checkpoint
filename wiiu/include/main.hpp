@@ -36,8 +36,8 @@
 typedef enum { SORT_ALPHA, SORT_LAST_PLAYED, SORT_PLAY_TIME, SORT_MODES_COUNT } sort_t;
 
 inline float g_currentTime = 0;
-inline AccountUid g_currentUId;
-inline bool g_backupScrollEnabled       = 0;
+inline nn::act::PersistentId g_currentUId;
+inline bool g_backupScrollEnabled       = false;
 inline std::shared_ptr<Screen> g_screen = nullptr;
 inline uint32_t g_username_dotsize;
 inline sort_t g_sortMode = SORT_ALPHA;

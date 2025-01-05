@@ -34,25 +34,24 @@
 #define DELAY_TICKS 15000000
 
 template <HidDirection ListDirection, HidDirection PageDirection>
-class Hid : public IHid<ListDirection, PageDirection, DELAY_TICKS>
-{
+class Hid : public IHid<ListDirection, PageDirection, DELAY_TICKS> {
 public:
     Hid(size_t entries, size_t columns) : IHid<ListDirection, PageDirection, DELAY_TICKS>(entries, columns) {}
 
 private:
-    bool downDown() const override          { return Input::getDown() & (Input::BUTTON_DOWN | Input::STICK_L_DOWN | Input::STICK_R_DOWN); }
-    bool upDown() const override            { return Input::getDown() & (Input::BUTTON_UP | Input::STICK_L_UP | Input::STICK_R_UP); }
-    bool leftDown() const override          { return Input::getDown() & (Input::BUTTON_LEFT | Input::STICK_L_LEFT | Input::STICK_R_LEFT); }
-    bool rightDown() const override         { return Input::getDown() & (Input::BUTTON_RIGHT | Input::STICK_L_RIGHT | Input::STICK_R_RIGHT); }
-    bool leftTriggerDown() const override   { return Input::getDown() & Input::BUTTON_L; }
-    bool rightTriggerDown() const override  { return Input::getDown() & Input::BUTTON_R; }
-    bool downHeld() const override          { return Input::getHeld() & (Input::BUTTON_DOWN | Input::STICK_L_DOWN | Input::STICK_R_DOWN); }
-    bool upHeld() const override            { return Input::getHeld() & (Input::BUTTON_UP | Input::STICK_L_UP | Input::STICK_R_UP); }
-    bool leftHeld() const override          { return Input::getHeld() & (Input::BUTTON_LEFT | Input::STICK_L_LEFT | Input::STICK_R_LEFT); }
-    bool rightHeld() const override         { return Input::getHeld() & (Input::BUTTON_RIGHT | Input::STICK_L_RIGHT | Input::STICK_R_RIGHT); }
-    bool leftTriggerHeld() const override   { return Input::getHeld() & Input::BUTTON_L; }
-    bool rightTriggerHeld() const override  { return Input::getHeld() & Input::BUTTON_R; }
-    
+    bool downDown() const override { return Input::getDown() & (Input::BUTTON_DOWN | Input::STICK_L_DOWN | Input::STICK_R_DOWN); }
+    bool upDown() const override { return Input::getDown() & (Input::BUTTON_UP | Input::STICK_L_UP | Input::STICK_R_UP); }
+    bool leftDown() const override { return Input::getDown() & (Input::BUTTON_LEFT | Input::STICK_L_LEFT | Input::STICK_R_LEFT); }
+    bool rightDown() const override { return Input::getDown() & (Input::BUTTON_RIGHT | Input::STICK_L_RIGHT | Input::STICK_R_RIGHT); }
+    bool leftTriggerDown() const override { return Input::getDown() & Input::BUTTON_L; }
+    bool rightTriggerDown() const override { return Input::getDown() & Input::BUTTON_R; }
+    bool downHeld() const override { return Input::getHeld() & (Input::BUTTON_DOWN | Input::STICK_L_DOWN | Input::STICK_R_DOWN); }
+    bool upHeld() const override { return Input::getHeld() & (Input::BUTTON_UP | Input::STICK_L_UP | Input::STICK_R_UP); }
+    bool leftHeld() const override { return Input::getHeld() & (Input::BUTTON_LEFT | Input::STICK_L_LEFT | Input::STICK_R_LEFT); }
+    bool rightHeld() const override { return Input::getHeld() & (Input::BUTTON_RIGHT | Input::STICK_L_RIGHT | Input::STICK_R_RIGHT); }
+    bool leftTriggerHeld() const override { return Input::getHeld() & Input::BUTTON_L; }
+    bool rightTriggerHeld() const override { return Input::getHeld() & Input::BUTTON_R; }
+
     u64 tick() const override { return OSGetSystemTick(); }
 };
 

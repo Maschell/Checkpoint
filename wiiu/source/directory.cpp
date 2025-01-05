@@ -25,6 +25,7 @@
  */
 
 #include "directory.hpp"
+#include <coreinit/debug.h>
 
 Directory::Directory(const std::string& root)
 {
@@ -35,7 +36,8 @@ Directory::Directory(const std::string& root)
     DIR* dir = opendir(root.c_str());
     struct dirent* ent;
 
-    if (dir == NULL) {
+    if (dir == nullptr) {
+        OSReport("Open dir failed for %s\n", root.c_str());
         mError = (int32_t)errno;
     }
     else {
@@ -51,12 +53,12 @@ Directory::Directory(const std::string& root)
     mGood = true;
 }
 
-int32_t Directory::error(void)
+int32_t Directory::error() const
 {
     return mError;
 }
 
-bool Directory::good(void)
+bool Directory::good() const
 {
     return mGood && mError == 0;
 }
@@ -68,10 +70,10 @@ std::string Directory::entry(size_t index)
 
 bool Directory::folder(size_t index)
 {
-    return index < mList.size() ? mList.at(index).directory : false;
+    return index < mList.size() && mList.at(index).directory;
 }
 
-size_t Directory::size(void)
+size_t Directory::size()
 {
     return mList.size();
 }

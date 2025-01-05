@@ -32,72 +32,126 @@
 #include "configuration.hpp"
 #include "io.hpp"
 #include <algorithm>
+#include <malloc.h>
 #include <stdlib.h>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include <malloc.h>
 
 #include <coreinit/mcp.h>
 #include <nn/act.h>
 #include <nn/pdm.h>
 
-typedef uint32_t AccountUid;
+struct IconWrapper {
+    SDL_Texture* icon = nullptr;
+
+    explicit IconWrapper(SDL_Texture* icon) : icon(icon) {}
+
+    ~IconWrapper()
+    {
+        if (icon) {
+            SDL_DestroyTexture(icon);
+            icon = nullptr;
+        }
+    }
+
+    // Delete the copy constructor and copy assignment operator
+    IconWrapper(const IconWrapper&) = delete;
+
+    IconWrapper& operator=(const IconWrapper&) = delete;
+
+    IconWrapper(IconWrapper&& other) noexcept : icon(other.icon) { other.icon = {}; }
+
+    IconWrapper& operator=(IconWrapper&& other) noexcept
+    {
+        if (this != &other) {
+            icon       = other.icon;
+            other.icon = {};
+        }
+        return *this;
+    }
+};
 
 class Title {
 public:
-    void init(uint64_t titleid, AccountUid userID, const std::string& name, const std::string& author);
-    void initvWii(const std::string&name, const std::string& author);
-    ~Title(void){};
+    Title(uint64_t titleid,
+        nn::act::PersistentId persistentId,
+        const std::string& name,
+        const std::string& author,
+        const std::string& sourcePath,
+        std::shared_ptr<IconWrapper> icon,
+        uint32_t playTimeMinutes,
+        uint32_t lastPlayedTimestamp
+        );
 
-    bool isvWii(void);
-    std::string author(void);
-    std::pair<std::string, std::string> displayName(void);
-    SDL_Texture* icon(void);
-    uint64_t id(void);
-    std::string name(void);
-    std::string path(void);
-    std::string sourcePath(void);
+    [[nodiscard]] std::string publisher() const;
+
+    std::pair<std::string, std::string> displayName();
+
+    [[nodiscard]] const IconWrapper& icon() const;
+
+    [[nodiscard]] uint64_t id() const;
+
+    [[nodiscard]] std::string name() const;
+
+    [[nodiscard]] std::string path() const;
+
+    [[nodiscard]] std::string sourcePath() const;
+
+    [[nodiscard]] std::string location() const;
+
     void sourcePath(std::string spath);
-    uint32_t playTimeMinutes(void);
-    std::string playTime(void);
-    void playTimeMinutes(uint32_t playTimeMinutes);
-    uint32_t lastPlayedTimestamp(void);
-    void lastPlayedTimestamp(uint32_t lastPlayedTimestamp);
+
     std::string fullPath(size_t index);
-    void refreshDirectories(void);
-    std::vector<std::string> saves(void);
-    AccountUid userId(void);
-    std::string userName(void);
+
+    void refreshDirectories();
+
+    std::vector<std::string> saves();
+
+    [[nodiscard]] nn::act::PersistentId userId() const;
+
+    [[nodiscard]] std::string userName() const;
+
+    uint32_t playTimeMinutes();
+    std::string playTime();
+    void playTimeMinutes(uint32_t playTimeMinutes);
+    uint32_t lastPlayedTimestamp();
+    void lastPlayedTimestamp(uint32_t lastPlayedTimestamp);
 
 private:
-    bool misvWii;
     uint64_t mId;
-    bool mCommonSave;
-    AccountUid mUserId;
+    nn::act::PersistentId mUserId;
     std::string mUserName;
     std::string mName;
     std::string mSafeName;
-    std::string mAuthor;
+    std::string mPublisher;
     std::string mPath;
     std::string mSourcePath;
     std::vector<std::string> mSaves;
     std::vector<std::string> mFullSavePaths;
     std::pair<std::string, std::string> mDisplayName;
+    std::shared_ptr<IconWrapper> mIcon;
     uint32_t mPlayTimeMinutes;
     uint32_t mLastPlayedTimestamp;
 };
 
-void getTitle(Title& dst, AccountUid uid, size_t i);
-size_t getTitleCount(AccountUid uid);
+Title* getTitle(nn::act::PersistentId uid, size_t i);
+
+size_t getTitleCount(nn::act::PersistentId uid);
+
 void loadTitles();
-void sortTitles(void);
-void rotateSortMode(void);
+
+void sortTitles();
+
+void rotateSortMode();
+
 void refreshDirectories(uint64_t id);
-bool favorite(AccountUid uid, int i);
-void freeIcons(void);
-SDL_Texture* smallIcon(AccountUid uid, size_t i);
-std::unordered_map<std::string, std::string> getCompleteTitleList(void);
+
+bool favorite(nn::act::PersistentId uid, int i);
+
+IconWrapper& smallIcon(nn::act::PersistentId uid, size_t i);
+
+std::unordered_map<std::string, std::string> getCompleteTitleList();
 
 #endif

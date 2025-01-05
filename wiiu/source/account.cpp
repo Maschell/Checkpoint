@@ -25,106 +25,99 @@
  */
 
 #include "account.hpp"
+#include <coreinit/debug.h>
 
-static std::map<AccountUid, User> mUsers;
+static std::map<nn::act::PersistentId, User> sUsers;
 
-bool Account::init(void)
+bool Account::init()
 {
-    return nn::act::Initialize().IsSuccess();
+    auto res = nn::act::Initialize().IsSuccess();
+
+    // add common user
+    sUsers.insert({0, User(0, "Common", "common", nullptr)});
+
+    return res;
 }
 
-void Account::exit(void)
+void Account::exit()
 {
-    for (auto& value : mUsers) {
-        if (value.second.icon) {
-            SDL_DestroyTexture(value.second.icon);
-        }
-    }
     nn::act::Finalize();
 }
 
-std::vector<AccountUid> Account::ids(void)
+std::vector<nn::act::PersistentId> Account::ids()
 {
-    std::vector<AccountUid> v;
-    for (auto& value : mUsers) {
+    std::vector<nn::act::PersistentId> v;
+    for (auto& value : sUsers) {
         v.push_back(value.second.id);
     }
     return v;
 }
 
-User Account::getUser(AccountUid id)
+std::optional<User> Account::getUserFromSlot(nn::act::SlotNo slot)
 {
-    User user{id, "", "", NULL};
+    if (!nn::act::IsSlotOccupied(slot)) {
+        return {};
+    }
+    auto id = nn::act::GetPersistentIdEx(slot);
 
+    // Get the mii name because not every account has a NNID linked
+    int16_t miiName[nn::act::MiiNameSize];
+    nn::act::GetMiiNameEx(miiName, slot);
+
+    // convert to string
+    std::u16string miiNameString((char16_t*)miiName, nn::act::MiiNameSize);
+    auto name = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(miiNameString);
+
+    auto shortName = trimToFit(name, 96 - g_username_dotsize * 2, 13);
+
+    // load icon
+    auto* buffer      = (uint8_t*)malloc(MAX_IMAGE_SIZE);
+    size_t image_size = 0;
+    nn::act::GetMiiImageEx(&image_size, buffer, MAX_IMAGE_SIZE, 0, slot);
+    SDL_Texture* icon = nullptr;
+    if (image_size > 0) {
+        SDLH_LoadImage(&icon, buffer, image_size, true);
+    }
+    free(buffer);
+
+    return User(id, name, shortName, icon);
+}
+
+static std::optional<User> getUser(nn::act::PersistentId id)
+{
     nn::act::SlotNo slotNo = accountIdToSlotNo(id);
+    OSReport("slot res %d\n", slotNo);
     if (slotNo != 0) {
-        return getUserFromSlot(slotNo);
+        return Account::getUserFromSlot(slotNo);
     }
 
-    return user;
+    return {};
 }
 
-User Account::getUserFromSlot(nn::act::SlotNo slot)
+User& Account::getUserCached(nn::act::PersistentId id)
 {
-    User user{0, "", "", NULL};
-
-    if (nn::act::IsSlotOccupied(slot)) {
-        user.id = nn::act::GetPersistentIdEx(slot);
-
-        // Get the mii name because not every account has a NNID linked
-        int16_t miiName[nn::act::MiiNameSize];
-        nn::act::GetMiiNameEx(miiName, slot);
-
-        // convert to string
-        std::u16string miiNameString((char16_t*) miiName, nn::act::MiiNameSize);
-        user.name = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(miiNameString);
-
-        user.shortName = trimToFit(user.name, 96 - g_username_dotsize * 2, 13);
-
-        // load icon
-        uint8_t* buffer = (uint8_t*) malloc(MAX_IMAGE_SIZE);
-        size_t image_size = 0;
-        nn::act::GetMiiImageEx(&image_size, buffer, MAX_IMAGE_SIZE, 0, slot);
-        if (image_size > 0) {
-            SDLH_LoadImage(&user.icon, buffer, image_size, true);
+    if (!sUsers.contains(id)) {
+        auto user = getUser(id);
+        if (!user) {
+            OSReport("Tried to access invalid user %08X\n", id);
+            throw std::runtime_error("Tried to access invalid user");
         }
-        free(buffer);
+        sUsers.insert({id, std::move(*user)});
     }
-
-    return user;
+    return sUsers.at(id);
 }
 
-std::string Account::username(AccountUid id)
+std::string Account::username(nn::act::PersistentId id)
 {
-    std::map<AccountUid, User>::const_iterator got = mUsers.find(id);
-    if (got == mUsers.end()) {
-        User user = getUser(id);
-        mUsers.insert({id, user});
-        return user.name;
-    }
-
-    return got->second.name;
+    return getUserCached(id).name;
 }
 
-std::string Account::shortName(AccountUid id)
+std::string Account::shortName(nn::act::PersistentId id)
 {
-    std::map<AccountUid, User>::const_iterator got = mUsers.find(id);
-    if (got == mUsers.end()) {
-        User user = getUser(id);
-        mUsers.insert({id, user});
-        return user.shortName;
-    }
-
-    return got->second.shortName;
+    return getUserCached(id).shortName;
 }
 
-SDL_Texture* Account::icon(AccountUid id)
+SDL_Texture* Account::icon(nn::act::PersistentId id)
 {
-    std::map<AccountUid, User>::const_iterator got = mUsers.find(id);
-    if (got == mUsers.end()) {
-        User user = getUser(id);
-        mUsers.insert({id, user});
-        return user.icon;
-    }
-    return got->second.icon;
+    return getUserCached(id).icon;
 }

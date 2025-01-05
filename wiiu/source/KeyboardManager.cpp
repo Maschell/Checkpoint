@@ -26,15 +26,12 @@
 
 #include "KeyboardManager.hpp"
 
-KeyboardManager::KeyboardManager(void)
-{
-    
-}
+KeyboardManager::KeyboardManager(void) {}
 
 bool KeyboardManager::init()
 {
     createArg.workMemory = malloc(nn::swkbd::GetWorkMemorySize(0));
-    createArg.fsClient = (FSClient*) malloc(sizeof(FSClient));
+    createArg.fsClient   = (FSClient*)malloc(sizeof(FSClient));
 
     if (!createArg.workMemory || !createArg.fsClient) {
         free(createArg.workMemory);
@@ -109,7 +106,7 @@ void KeyboardManager::update()
 
     controllerInfo.vpad = &vpad;
     for (int i = 0; i < 4; i++) {
-        KPADStatus kpad = Input::getKpad(i);
+        KPADStatus kpad        = Input::getKpad(i);
         controllerInfo.kpad[i] = &kpad;
     }
     nn::swkbd::Calc(controllerInfo);
@@ -133,8 +130,7 @@ void KeyboardManager::hide()
 
     nn::swkbd::DisappearInputForm();
 
-    while (!hidden())
-    {
+    while (!hidden()) {
         // update until fully hidden
         update();
     }

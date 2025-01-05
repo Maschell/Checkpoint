@@ -27,13 +27,13 @@
 #ifndef KEYBOARDMANAGER_HPP
 #define KEYBOARDMANAGER_HPP
 
-#include "input.hpp"
 #include "SDLHelper.hpp"
+#include "input.hpp"
+#include <codecvt>
+#include <locale>
 #include <nn/swkbd.h>
 #include <string>
 #include <utility>
-#include <locale>
-#include <codecvt>
 
 class KeyboardManager {
 public:
@@ -44,7 +44,7 @@ public:
     }
 
     KeyboardManager(KeyboardManager const&) = delete;
-    void operator=(KeyboardManager const&) = delete;
+    void operator=(KeyboardManager const&)  = delete;
 
     bool init();
     void shutdown();

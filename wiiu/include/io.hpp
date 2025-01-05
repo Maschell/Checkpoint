@@ -34,6 +34,7 @@
 #include "title.hpp"
 #include "util.hpp"
 #include <dirent.h>
+#include <nn/act.h>
 #include <sys/stat.h>
 #include <tuple>
 #include <unistd.h>
@@ -41,16 +42,14 @@
 
 #define BUFFER_SIZE 0x80000
 
-typedef uint32_t AccountUid;
-
 namespace io {
     struct DirEntry {
         uint8_t type;
         std::string name;
     };
 
-    std::tuple<bool, int32_t, std::string> backup(size_t index, AccountUid uid, size_t cellIndex);
-    std::tuple<bool, int32_t, std::string> restore(size_t index, AccountUid uid, size_t cellIndex, const std::string& nameFromCell);
+    std::tuple<bool, int32_t, std::string> backup(size_t index, nn::act::PersistentId uid, size_t cellIndex);
+    std::tuple<bool, int32_t, std::string> restore(size_t index, nn::act::PersistentId uid, size_t cellIndex, const std::string& nameFromCell);
 
     int32_t copyDirectory(const std::string& srcPath, const std::string& dstPath, int mode = 0);
     void copyFile(const std::string& srcPath, const std::string& dstPath, int mode = 0);

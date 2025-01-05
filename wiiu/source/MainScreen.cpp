@@ -75,8 +75,10 @@ void MainScreen::draw() const
     for (size_t k = hid.page() * entries; k < hid.page() * entries + max; k++) {
         int selectorx = selectorX(k);
         int selectory = selectorY(k);
-        if (smallIcon(g_currentUId, k) != NULL) {
-            SDLH_DrawImageScale(smallIcon(g_currentUId, k), selectorx, selectory, 128, 128);
+        auto* title   = getTitle(g_currentUId, k);
+
+        if (title && title->icon().icon != NULL) {
+            SDLH_DrawImageScale(title->icon().icon, selectorx, selectory, 128, 128);
         }
         else {
             SDLH_DrawRect(selectorx, selectory, 128, 128, theme().c0);
@@ -100,40 +102,40 @@ void MainScreen::draw() const
         SDLH_DrawRect(x, y, 124, 124, COLOR_WHITEMASK);
     }
 
-    if (getTitleCount(g_currentUId) > 0) {
-        Title title;
-        getTitle(title, g_currentUId, hid.fullIndex());
+    if (getTitleCount(g_currentUId) > 0 && getTitle(g_currentUId, hid.fullIndex()) != nullptr) {
+        auto* title = getTitle(g_currentUId, hid.fullIndex());
 
         backupList->flush();
-        std::vector<std::string> dirs = title.saves();
+        std::vector<std::string> dirs = title->saves();
 
         for (size_t i = 0; i < dirs.size(); i++) {
             backupList->push_back(theme().c2, theme().c6, dirs.at(i), i == backupList->index());
         }
 
-        if (title.icon() != NULL) {
+        if (title->icon().icon) {
             drawOutline(1018, 6, 256, 256, 4, theme().c3);
-            SDLH_DrawImageScale(title.icon(), 1018, 6, 256, 256);
+            SDLH_DrawImageScale(title->icon().icon, 1018, 6, 256, 256);
         }
 
         // draw infos
-        u32 title_w, title_h, h, titleid_w, producer_w, user_w, subtitle_w, playtime_w;
-        auto displayName = title.displayName();
+        u32 title_w, title_h, h, titleid_w, producer_w, user_w, location_w, subtitle_w, playtime_w;
+        auto displayName = title->displayName();
         SDLH_GetTextDimensions(28, displayName.first.c_str(), &title_w, &title_h);
         SDLH_GetTextDimensions(23, "Title: ", &subtitle_w, NULL);
         SDLH_GetTextDimensions(23, "Title ID: ", &titleid_w, &h);
         SDLH_GetTextDimensions(23, "Author: ", &producer_w, NULL);
         SDLH_GetTextDimensions(23, "User: ", &user_w, NULL);
+        SDLH_GetTextDimensions(23, "Location: ", &location_w, NULL);
 
         if (title_w >= 534) {
             displayName.first = displayName.first.substr(0, 24) + "...";
             SDLH_GetTextDimensions(28, displayName.first.c_str(), &title_w, &title_h);
         }
 
-        u8 boxRows = (displayName.second.length() > 0 ? 4 : 3);
+        u8 boxRows = (!displayName.second.empty() ? 5 : 4);
 
         h += 6;
-        if (!title.playTime().empty()) {
+        if (!title->playTime().empty()) {
             boxRows++;
             SDLH_GetTextDimensions(23, "Play Time: ", &playtime_w, NULL);
         }
@@ -145,24 +147,29 @@ void MainScreen::draw() const
         SDLH_DrawRect(534, offset - h / 2 - 2, 480, h * boxRows + h / 2, theme().c2);
 
         SDLH_DrawText(28, 538 - 8 + 482 - title_w, 8, theme().c5, displayName.first.c_str());
-        if (displayName.second.length() > 0) {
+        if (!displayName.second.empty()) {
             SDLH_DrawText(23, 538, offset + h * i, theme().c5, "Title:");
             SDLH_DrawTextBox(23, 538 + subtitle_w, offset + h * (i++), theme().c6, 478 - 4 * 2 - subtitle_w, displayName.second.c_str());
         }
 
         SDLH_DrawText(23, 538, offset + h * i, theme().c5, "Title ID:");
         SDLH_DrawTextBox(
-            23, 538 + titleid_w, offset + h * (i++), theme().c6, 478 - 4 * 2 - titleid_w, StringUtils::format("%016llX", title.id()).c_str());
+            23, 538 + titleid_w, offset + h * (i++), theme().c6, 478 - 4 * 2 - titleid_w, StringUtils::format("%016llX", title->id()).c_str());
 
         SDLH_DrawText(23, 538, offset + h * i, theme().c5, "Author:");
-        SDLH_DrawTextBox(23, 538 + producer_w, offset + h * (i++), theme().c6, 478 - 4 * 2 - producer_w, title.author().c_str());
+        SDLH_DrawTextBox(23, 538 + producer_w, offset + h * (i++), theme().c6, 478 - 4 * 2 - producer_w, title->publisher().c_str());
 
         SDLH_DrawText(23, 538, offset + h * i, theme().c5, "User:");
-        SDLH_DrawTextBox(23, 538 + user_w, offset + h * (i++), theme().c6, 478 - 4 * 2 - user_w, title.userName().c_str());
+        SDLH_DrawTextBox(23, 538 + user_w, offset + h * (i++), theme().c6, 478 - 4 * 2 - user_w, title->userName().c_str());
 
-        if (!title.playTime().empty()) {
+
+        SDLH_DrawText(23, 538, offset + h * i, theme().c5, "Location:");
+        SDLH_DrawTextBox(23, 538 + location_w, offset + h * (i++), theme().c6, 478 - 4 * 2 - location_w, title->location().c_str());
+
+
+        if (!title->playTime().empty()) {
             SDLH_DrawText(23, 538, offset + h * i, theme().c5, "Play Time:");
-            SDLH_DrawTextBox(23, 538 + playtime_w, offset + h * (i++), theme().c6, 478 - 4 * 2 - playtime_w, title.playTime().c_str());
+            SDLH_DrawTextBox(23, 538 + playtime_w, offset + h * (i++), theme().c6, 478 - 4 * 2 - playtime_w, title->playTime().c_str());
         }
 
         drawOutline(538, 276, 414, 380, 4, theme().c3);
@@ -217,7 +224,7 @@ void MainScreen::update(touchPosition* touch)
 void MainScreen::updateSelector(touchPosition* touch)
 {
     if (!g_backupScrollEnabled) {
-        size_t count    = getTitleCount(g_currentUId);
+        size_t count = getTitleCount(g_currentUId);
         hid.update(count);
 
         // loop through every rendered title
@@ -247,39 +254,36 @@ void MainScreen::handleEvents(touchPosition* touch)
     uint32_t kdown = Input::getDown();
     uint32_t kheld = Input::getHeld();
 
-    if (kdown & Input::BUTTON_ZL || kdown & Input::BUTTON_ZR)
-    {
-        currentOverlay = std::make_shared<AccountSelectOverlay>
-        (*this, 
-        [this](AccountUid uid) {
-            g_currentUId = uid;
-            this->removeOverlay();
+    if (kdown & Input::BUTTON_ZL || kdown & Input::BUTTON_ZR) {
+        currentOverlay = std::make_shared<AccountSelectOverlay>(
+            *this,
+            [this](nn::act::PersistentId uid) {
+                g_currentUId = uid;
+                this->removeOverlay();
 
-            this->index(TITLES, 0);
-            this->index(CELLS, 0);
-        }, 
-        [this]() { this->removeOverlay(); });
+                this->index(TITLES, 0);
+                this->index(CELLS, 0);
+            },
+            [this]() { this->removeOverlay(); });
     }
 
     // handle touchscreen
-    if (!g_backupScrollEnabled && touch->touched && touch->x >= 1200 && touch->x <= 1200 + USER_ICON_SIZE &&
-        touch->y >= 626 && touch->y <= 626 + USER_ICON_SIZE)
-    {
-        currentOverlay = std::make_shared<AccountSelectOverlay>
-        (*this, 
-        [this](AccountUid uid) {
-            g_currentUId = uid;
-            this->removeOverlay();
+    if (!g_backupScrollEnabled && touch->touched && touch->x >= 1200 && touch->x <= 1200 + USER_ICON_SIZE && touch->y >= 626 &&
+        touch->y <= 626 + USER_ICON_SIZE) {
+        currentOverlay = std::make_shared<AccountSelectOverlay>(
+            *this,
+            [this](nn::act::PersistentId uid) {
+                g_currentUId = uid;
+                this->removeOverlay();
 
-            this->index(TITLES, 0);
-            this->index(CELLS, 0);
-        }, 
-        [this]() { this->removeOverlay(); });
+                this->index(TITLES, 0);
+                this->index(CELLS, 0);
+            },
+            [this]() { this->removeOverlay(); });
     }
 
     // Handle touching the backup list
-    if ((touch->touched && (int)touch->x > 538 && (int)touch->x < 952 && (int)touch->y > 276 &&
-            (int)touch->y < 656)) {
+    if ((touch->touched && (int)touch->x > 538 && (int)touch->x < 952 && (int)touch->y > 276 && (int)touch->y < 656)) {
         // Activate backup list only if multiple selections are enabled
         if (!MS::multipleSelectionEnabled()) {
             g_backupScrollEnabled = true;
@@ -335,8 +339,7 @@ void MainScreen::handleEvents(touchPosition* touch)
     }
 
     // Handle pressing B
-    if (kdown & Input::BUTTON_B || (touch->touched && (int)touch->x >= 0 && (int)touch->x <= 532 && (int)touch->y >= 0 &&
-                             (int)touch->y <= 664)) {
+    if (kdown & Input::BUTTON_B || (touch->touched && (int)touch->x >= 0 && (int)touch->x <= 532 && (int)touch->y >= 0 && (int)touch->y <= 664)) {
         this->index(CELLS, 0);
         g_backupScrollEnabled = false;
         entryType(TITLES);
@@ -352,11 +355,13 @@ void MainScreen::handleEvents(touchPosition* touch)
                 currentOverlay = std::make_shared<YesNoOverlay>(
                     *this, "Delete selected backup?",
                     [this, index]() {
-                        Title title;
-                        getTitle(title, g_currentUId, this->index(TITLES));
-                        std::string path = title.fullPath(index);
+                        auto* title = getTitle(g_currentUId, this->index(TITLES));
+                        if (!title) {
+                            return;
+                        }
+                        std::string path = title->fullPath(index);
                         io::deleteFolderRecursively((path + "/").c_str());
-                        refreshDirectories(title.id());
+                        refreshDirectories(title->id());
                         this->index(CELLS, index - 1);
                         this->removeOverlay();
                     },

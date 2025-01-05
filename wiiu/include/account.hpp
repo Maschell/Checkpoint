@@ -28,34 +28,83 @@
 #define ACCOUNT_HPP
 
 #include "SDLHelper.hpp"
-#include <nn/act.h>
+#include <cstring>
 #include <map>
-#include <string.h>
+#include <nn/acp.h>
+#include <nn/act.h>
+#include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #define COMMONSAVE_ID 0xFFFFFFFF
 #define USER_ICON_SIZE 64
 #define MAX_IMAGE_SIZE 1024 * 70 // 70 Kib should be enough
-typedef uint32_t AccountUid;
 
 struct User {
-    AccountUid id;
+    nn::act::PersistentId id;
     std::string name;
     std::string shortName;
-    SDL_Texture* icon;
+    SDL_Texture* icon = nullptr;
+
+    User(nn::act::PersistentId id, std::string name, std::string shortName, SDL_Texture* icon = nullptr)
+        : id(id), name(std::move(name)), shortName(std::move(shortName)), icon(icon)
+    {
+    }
+
+    ~User()
+    {
+        if (icon) {
+            SDL_DestroyTexture(icon);
+            icon = nullptr;
+        }
+    }
+
+    // Delete the copy constructor and copy assignment operator
+    User(const User&) = delete;
+
+    User& operator=(const User&) = delete;
+
+    User(User&& other) noexcept : id(other.id), name(std::move(other.name)), shortName(std::move(other.shortName)), icon(other.icon)
+    {
+        other.id        = {};
+        other.name      = {};
+        other.shortName = {};
+        other.icon      = {};
+    }
+
+    User& operator=(User&& other) noexcept
+    {
+        if (this != &other) {
+            id              = other.id;
+            name            = other.name;
+            shortName       = other.shortName;
+            icon            = other.icon;
+            other.id        = {};
+            other.name      = {};
+            other.shortName = {};
+            other.icon      = {};
+        }
+        return *this;
+    }
 };
 
 namespace Account {
-    bool init(void);
-    void exit(void);
-    User getUser(AccountUid id);
-    User getUserFromSlot(nn::act::SlotNo slot);
+    bool init();
 
-    std::vector<AccountUid> ids(void);
-    SDL_Texture* icon(AccountUid id);
-    std::string username(AccountUid id);
-    std::string shortName(AccountUid id);
+    void exit();
+
+    std::vector<nn::act::PersistentId> ids();
+
+    std::optional<User> getUserFromSlot(nn::act::SlotNo slot);
+
+    SDL_Texture* icon(nn::act::PersistentId id);
+
+    std::string username(nn::act::PersistentId id);
+
+    std::string shortName(nn::act::PersistentId id);
+
+    User& getUserCached(nn::act::PersistentId id);
 }
 
 #endif

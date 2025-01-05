@@ -29,14 +29,13 @@
 bool Clickable::held()
 {
     touchPosition touch = Input::getTouch();
-    return (touch.touched && (int)touch.x > mx && (int)touch.x < mx + mw && (int)touch.y > my &&
-            (int)touch.y < my + mh);
+    return (touch.touched && (int)touch.x > mx && (int)touch.x < mx + mw && (int)touch.y > my && (int)touch.y < my + mh);
 }
 
 bool Clickable::released(void)
 {
     touchPosition touch = Input::getTouch();
-    const bool on = (int)touch.x > mx && (int)touch.x < mx + mw && (int)touch.y > my && (int)touch.y < my + mh;
+    const bool on       = (int)touch.x > mx && (int)touch.x < mx + mw && (int)touch.y > my && (int)touch.y < my + mh;
 
     if (on) {
         mOldPressed = true;

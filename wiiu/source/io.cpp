@@ -25,10 +25,11 @@
  */
 
 #include "io.hpp"
+#include <coreinit/debug.h>
 
 bool io::fileExists(const std::string& path)
 {
-    struct stat buffer;
+    struct stat buffer {};
     return (stat(path.c_str(), &buffer) == 0);
 }
 
@@ -82,8 +83,9 @@ void io::copyFile(const std::string& srcPath, const std::string& dstPath, int mo
 
 int32_t io::copyDirectory(const std::string& srcPath, const std::string& dstPath, int mode)
 {
+    OSReport("Copy from %s to %s\n", srcPath.c_str(), dstPath.c_str());
     int32_t res = 0;
-    bool quit  = false;
+    bool quit   = false;
     Directory items(srcPath);
 
     if (!items.good()) {
@@ -116,13 +118,14 @@ int32_t io::copyDirectory(const std::string& srcPath, const std::string& dstPath
 int32_t io::createDirectory(const std::string& path, int mode)
 {
     mkdir(path.c_str(), mode ? mode : 0777);
-    if (mode) chmod(path.c_str(), mode);
+    if (mode)
+        chmod(path.c_str(), mode);
     return 0;
 }
 
 bool io::directoryExists(const std::string& path)
 {
-    struct stat sb;
+    struct stat sb {};
     return (stat(path.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode));
 }
 
@@ -150,22 +153,24 @@ int32_t io::deleteFolderRecursively(const std::string& path)
     return 0;
 }
 
-std::tuple<bool, int32_t, std::string> io::backup(size_t index, AccountUid uid, size_t cellIndex)
+std::tuple<bool, int32_t, std::string> io::backup(size_t index, nn::act::PersistentId uid, size_t cellIndex)
 {
     const bool isNewFolder                     = cellIndex == 0;
     int32_t res                                = 0;
     std::tuple<bool, int32_t, std::string> ret = std::make_tuple(false, -1, "");
 
-    Title title;
-    getTitle(title, uid, index);
+    auto* title = getTitle(uid, index);
+    if (!title) {
+        return std::make_tuple(false, res, "Failed to load title info.");
+    }
 
-    Logger::getInstance().log(Logger::INFO, "Started backup of %s. Title id: 0x%llX; User id: 0x%016lX.", title.name().c_str(), title.id(),
-        title.userId());
+    Logger::getInstance().log(
+        Logger::INFO, "Started backup of %s. Title id: 0x%llX; User id: 0x%016lX.", title->name().c_str(), title->id(), title->userId());
 
-    std::string suggestion = DateTime::dateTimeStr() + " " +
-                             (StringUtils::containsInvalidChar(Account::username(title.userId()))
+    std::string suggestion = title->location() + " " + DateTime::dateTimeStr() + " " + StringUtils::format("%08X", title->userId()) +
+                             (StringUtils::containsInvalidChar(Account::username(title->userId()))
                                      ? ""
-                                     : StringUtils::removeNotAscii(StringUtils::removeAccents(Account::username(title.userId()))));
+                                     : StringUtils::removeNotAscii(StringUtils::removeAccents(Account::username(title->userId()))));
     std::string customPath;
 
     if (MS::multipleSelectionEnabled()) {
@@ -195,14 +200,14 @@ std::tuple<bool, int32_t, std::string> io::backup(size_t index, AccountUid uid, 
     std::string dstPath;
     if (!isNewFolder) {
         // we're overriding an existing folder
-        dstPath = title.fullPath(cellIndex);
+        dstPath = title->fullPath(cellIndex);
     }
     else {
-        dstPath = title.path() + "/" + customPath;
+        dstPath = title->path() + "/" + customPath;
     }
 
     if (!isNewFolder || io::directoryExists(dstPath)) {
-        int rc = io::deleteFolderRecursively((dstPath + "/").c_str());
+        int rc = io::deleteFolderRecursively(dstPath + "/");
         if (rc != 0) {
             Logger::getInstance().log(Logger::ERROR, "Failed to recursively delete directory " + dstPath + " with result %d.", rc);
             return std::make_tuple(false, (int32_t)rc, "Failed to delete the existing backup\ndirectory recursively.");
@@ -210,14 +215,14 @@ std::tuple<bool, int32_t, std::string> io::backup(size_t index, AccountUid uid, 
     }
 
     io::createDirectory(dstPath);
-    res = io::copyDirectory(title.sourcePath() + "/", dstPath + "/");
+    res = io::copyDirectory(title->sourcePath() + "/", dstPath + "/");
     if (res != 0) {
-        io::deleteFolderRecursively((dstPath + "/").c_str());
+        io::deleteFolderRecursively(dstPath + "/");
         Logger::getInstance().log(Logger::ERROR, "Failed to copy directory " + dstPath + " with result 0x%08lX. Skipping...", res);
         return std::make_tuple(false, res, "Failed to backup save.");
     }
 
-    refreshDirectories(title.id());
+    refreshDirectories(title->id());
 
     if (!MS::multipleSelectionEnabled()) {
         blinkLed(4);
@@ -234,17 +239,20 @@ std::tuple<bool, int32_t, std::string> io::backup(size_t index, AccountUid uid, 
     return ret;
 }
 
-std::tuple<bool, int32_t, std::string> io::restore(size_t index, AccountUid uid, size_t cellIndex, const std::string& nameFromCell)
+std::tuple<bool, int32_t, std::string> io::restore(size_t index, nn::act::PersistentId uid, size_t cellIndex, const std::string& nameFromCell)
 {
     int32_t res                                = 0;
     std::tuple<bool, int32_t, std::string> ret = std::make_tuple(false, -1, "");
-    Title title;
-    getTitle(title, uid, index);
+    auto* title                                = getTitle(uid, index);
+    if (!title) {
+        return std::make_tuple(false, res, "Failed to load title info.");
+    }
 
-    Logger::getInstance().log(Logger::INFO, "Started restore of %s. Title id: 0x%016llX; User id: 0x%lX.", title.name().c_str(), title.id(), title.userId());
+    Logger::getInstance().log(
+        Logger::INFO, "Started restore of %s. Title id: 0x%016llX; User id: 0x%lX.", title->name().c_str(), title->id(), title->userId());
 
-    std::string srcPath = title.fullPath(cellIndex) + "/";
-    std::string dstPath = title.sourcePath() + "/";
+    std::string srcPath = title->fullPath(cellIndex) + "/";
+    std::string dstPath = title->sourcePath() + "/";
 
     Directory dir(dstPath);
     if (!dir.good()) {
@@ -252,7 +260,7 @@ std::tuple<bool, int32_t, std::string> io::restore(size_t index, AccountUid uid,
         return std::make_tuple(false, res, "Failed to delete save.");
     }
     else {
-        for (size_t i = 0; i < dir.size(); i++)  {
+        for (size_t i = 0; i < dir.size(); i++) {
             if (dir.folder(i)) {
                 std::string newpath = dstPath + "/" + dir.entry(i) + "/";
                 deleteFolderRecursively(newpath);
